@@ -23,11 +23,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -42,12 +42,16 @@ jobs:
         with:
           gradle-version: 9.3.1
 
-      - name: Restore signing keystore for consistent OTA updates
+      - name: Restore signing keystore & build environment
         shell: bash
         run: |
           if [[ ! -f debug.keystore && -f debug.keystore.base64 ]]; then
             base64 -d debug.keystore.base64 > debug.keystore
             echo "Restored debug.keystore from debug.keystore.base64"
+          fi
+          if [[ ! -f .env.example ]]; then
+            touch .env.example
+            echo "Created placeholder .env.example for secrets-gradle-plugin"
           fi
 
       - name: Determine Permanent Public Hosting URL & Auto Build Number
@@ -92,6 +96,8 @@ jobs:
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload GitHub Pages Artifact (Download Portal + QR + APK + Desktop App)
         uses: actions/upload-pages-artifact@v3
@@ -118,12 +124,3 @@ jobs:
             public/downloads/ISCEB-latest.apk
             public/version.json
           make_latest: true
-
-      - name: Optional Firebase Hosting Deploy (if FIREBASE_SERVICE_ACCOUNT secret is set)
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          projectId: gen-lang-client-0901479759
